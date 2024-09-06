@@ -56,6 +56,7 @@ TASK_REGISTRY = {
     **flare.SM_TASKS,
     "flare_finarg_ecc_auc_test": flare.FINARGECCAUC_test,
     "flare_edtsum_test": flare.EDTSUM_test,
+    "xbrl_extraction": flare.XBRLExtraction,
 }
 
 ALL_TASKS = sorted(list(TASK_REGISTRY))
