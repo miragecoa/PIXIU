@@ -1236,6 +1236,59 @@ class LongFormFactuality(Task):
         }
 
 
+class XBRLExtraction(QA):
+    DATASET_PATH = "/colin/test_set_xbrl"
+
+    def has_training_docs(self):
+        return True
+
+    def has_validation_docs(self):
+        return True
+
+    def has_test_docs(self):
+        return True
+
+    def training_docs(self):
+        return self.dataset["train"]
+
+    def validation_docs(self):
+        return self.dataset["validation"]
+
+    def test_docs(self):
+        return self.dataset["test"]
+
+    def construct_requests(self, doc, ctx, xbrl_content=None):
+        """Modify the request construction to include the XBRL content, if provided."""
+        query = doc["query"]
+
+        if xbrl_content:
+            # Append the XBRL content to the context
+            ctx = f"{ctx}\n\nXBRL Content:\n{xbrl_content}"
+
+        # Construct the request as usual, now with the potential XBRL content
+        cont_request = rf.greedy_until(ctx, {"until": None})
+        return cont_request
+
+    def doc_to_text(self, doc):
+        return doc["query"]
+
+    def doc_to_target(self, doc):
+        return doc["answer"]
+
+    def process_results(self, doc, results):
+        # Process the results to compare model output to the expected answer
+        return {
+            "acc": 1.0 if results[0].strip() == doc["answer"] else 0.0
+        }
+
+    def higher_is_better(self):
+        return {
+            "acc": True,
+        }
+
+
+
+
 class FINTERM(LongFormFactuality):
     DATASET_PATH = "PIXIU-fin/en-finterm"
 

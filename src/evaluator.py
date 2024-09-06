@@ -30,7 +30,8 @@ def simple_evaluate(
     decontamination_ngrams_path=None,
     write_out=False,
     output_base_path=None,
-    model_prompt=None
+    model_prompt=None,
+    xbrl_content=None
 ):
     """Instantiate and evaluate a model on a list of tasks.
 
@@ -109,7 +110,8 @@ def simple_evaluate(
         decontamination_ngrams_path=decontamination_ngrams_path,
         write_out=write_out,
         output_base_path=output_base_path,
-        model_prompt=model_prompt
+        model_prompt=model_prompt,
+        xbrl_content = xbrl_content
     )
 
     # add info about the model and few shot config
@@ -144,7 +146,8 @@ def evaluate(
     decontamination_ngrams_path=None,
     write_out=False,
     output_base_path=None,
-    model_prompt=None
+    model_prompt=None,
+    xbrl_content=None
 ):
     """Instantiate and evaluate a model on a list of tasks.
 
@@ -254,8 +257,8 @@ def evaluate(
             )
 
             ctx = MODEL_PROMPT_MAP[model_prompt](ctx)
-            
-            reqs = task.construct_requests(doc, ctx)
+
+            reqs = task.construct_requests(doc, ctx, xbrl_content=xbrl_content)
 
             if write_out:
                 prompt_details.append({"doc_id": doc_id})

@@ -34,6 +34,10 @@ def parse_args():
     parser.add_argument("--write_out", action="store_true", default=False)
     parser.add_argument("--output_base_path", type=str, default=None)
 
+    parser.add_argument("--xbrl_file", type=str, default=None,
+                        help="Path to an optional XBRL file. This file will be used as part of the model input.")
+
+
     return parser.parse_args()
 
 
@@ -46,6 +50,12 @@ def main():
         print(
             "WARNING: --limit SHOULD ONLY BE USED FOR TESTING. REAL METRICS SHOULD NOT BE COMPUTED USING LIMIT."
         )
+
+    if args.xbrl_file:
+        with open(args.xbrl_file, 'r') as xbrl_f:
+            xbrl_content = xbrl_f.read()
+    else:
+        xbrl_content = None  # No XBRL file provided
 
     if args.tasks is None:
         task_names = tasks.ALL_TASKS
@@ -74,7 +84,8 @@ def main():
         check_integrity=args.check_integrity,
         write_out=args.write_out,
         output_base_path=args.output_base_path,
-        model_prompt=args.model_prompt
+        model_prompt=args.model_prompt,
+        xbrl_content=xbrl_content
     )
 
     dumped = json.dumps(results, indent=2)
