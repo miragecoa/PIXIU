@@ -1237,7 +1237,7 @@ class LongFormFactuality(Task):
 
 
 class XBRLExtraction(QA):
-    DATASET_PATH = "/colin/test_set_xbrl"
+    DATASET_PATH = "mirageco/test_dataset"
 
     def has_training_docs(self):
         return True
