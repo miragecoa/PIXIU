@@ -1301,6 +1301,7 @@ class XBRLExtraction(QA):
 
         f1 = f1_score(np.ones(len(gold_tokens)), pred_labels, average="weighted")
 
+        '''
         # FactScore: Calculate using a fact scorer package
         fact_scorer = FactScorer("retrieval+ChatGPT", openai_key=os.environ["OPENAI_API_KEY"])
 
@@ -1322,25 +1323,23 @@ class XBRLExtraction(QA):
 
         # Get FactScore
         fact_score = fact_scorer.get_score([gold], [predicted], knowledge_source="finterms")["score"]
+        '''
 
         return {
             "acc": accuracy,  # Higher is better
             "f1_score": f1,  # Higher is better
-            "fact_score": fact_score  # Higher is better
         }
 
     def higher_is_better(self):
         return {
             "acc": True,  # Accuracy: higher is better
             "f1_score": True,  # F1 Score: higher is better
-            "fact_score": True  # FactScore: higher is better
         }
 
     def aggregation(self):
         return {
             "acc": np.mean,  # Use mean for accuracy across examples
             "f1_score": np.mean,  # Use mean for F1 score across examples
-            "fact_score": np.mean  # Use mean for FactScore across examples
         }
 
 
