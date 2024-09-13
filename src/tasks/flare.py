@@ -1244,7 +1244,7 @@ from factscore_package.factscorer import FactScorer
 
 
 class XBRLExtraction(QA):
-    DATASET_PATH = "mirageco/XBRLBench"
+    DATASET_PATH = "mirageco/test_dataset"
 
     def has_training_docs(self):
         return True
