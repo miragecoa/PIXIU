@@ -1236,6 +1236,11 @@ class LongFormFactuality(Task):
         }
 
 
+import numpy as np
+from sklearn.metrics import f1_score
+import Levenshtein
+from factscore_package.factscorer import FactScorer
+
 class XBRLExtraction(QA):
     DATASET_PATH = "mirageco/test_dataset"
 
@@ -1276,15 +1281,52 @@ class XBRLExtraction(QA):
         return doc["answer"]
 
     def process_results(self, doc, results):
-        # Process the results to compare model output to the expected answer
+        predicted = results[0].strip()
+        gold = doc["answer"].strip()
+
+        # Accuracy: Check if exact match between prediction and gold
+        accuracy = 1.0 if predicted == gold else 0.0
+
+        # F1 Score: Simple token match between predicted and gold
+        pred_tokens = predicted.split()
+        gold_tokens = gold.split()
+
+        # Create binary labels for token match
+        pred_labels = np.zeros(len(gold_tokens))
+        for i, token in enumerate(pred_tokens):
+            if token in gold_tokens:
+                pred_labels[i] = 1
+
+        f1 = f1_score(np.ones(len(gold_tokens)), pred_labels, average="weighted")
+
+        # FactScore: Calculate using a fact scorer package
+        fact_scorer = FactScorer("retrieval+ChatGPT", openai_key=os.environ["OPENAI_API_KEY"])
+        fact_scorer.register_knowledge_source(
+            "finterms", data_path="./src/factscore_package/.cache/finterms.jsonl", db_path="./src/factscore_package/.cache/fin_terms.db"
+        )
+
+        fact_score = fact_scorer.get_score([gold], [predicted], knowledge_source="finterms")["score"]
+
         return {
-            "acc": 1.0 if results[0].strip() == doc["answer"] else 0.0
+            "acc": accuracy,   # Higher is better
+            "f1_score": f1,    # Higher is better
+            "fact_score": fact_score  # Higher is better
         }
 
     def higher_is_better(self):
         return {
-            "acc": True,
+            "acc": True,       # Accuracy: higher is better
+            "f1_score": True,  # F1 Score: higher is better
+            "fact_score": True # FactScore: higher is better
         }
+
+    def aggregation(self):
+        return {
+            "acc": np.mean,       # Use mean for accuracy across examples
+            "f1_score": np.mean,  # Use mean for F1 score across examples
+            "fact_score": np.mean # Use mean for FactScore across examples
+        }
+
 
 
 
