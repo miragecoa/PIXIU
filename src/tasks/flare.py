@@ -1236,12 +1236,8 @@ class LongFormFactuality(Task):
         }
 
 
-import os
 import numpy as np
 from sklearn.metrics import f1_score
-import Levenshtein
-from factscore_package.factscorer import FactScorer
-
 
 class XBRLExtraction(QA):
     DATASET_PATH = "mirageco/test_dataset"
@@ -1293,37 +1289,16 @@ class XBRLExtraction(QA):
         pred_tokens = predicted.split()
         gold_tokens = gold.split()
 
+        # Compare tokens only up to the length of the shortest sequence
+        common_length = min(len(pred_tokens), len(gold_tokens))
+
         # Create binary labels for token match
-        pred_labels = np.zeros(len(gold_tokens))
-        for i, token in enumerate(pred_tokens):
-            if token in gold_tokens:
+        pred_labels = np.zeros(common_length)
+        for i in range(common_length):
+            if pred_tokens[i] == gold_tokens[i]:
                 pred_labels[i] = 1
 
-        f1 = f1_score(np.ones(len(gold_tokens)), pred_labels, average="weighted")
-
-        '''
-        # FactScore: Calculate using a fact scorer package
-        fact_scorer = FactScorer("retrieval+ChatGPT", openai_key=os.environ["OPENAI_API_KEY"])
-
-        # Ensure paths for factscorer
-        db_dir = "./src/factscore_package/.cache"
-        db_path = os.path.join(db_dir, "fin_terms.db")
-        data_path = os.path.join(db_dir, "finterms.jsonl")
-
-        # Create the directory if it doesn't exist
-        os.makedirs(db_dir, exist_ok=True)
-
-        # If the database doesn't exist, skip registration
-        if os.path.exists(db_path):
-            fact_scorer.register_knowledge_source(
-                "finterms", data_path=data_path, db_path=db_path
-            )
-        else:
-            print("Skipping knowledge source registration as database does not exist.")
-
-        # Get FactScore
-        fact_score = fact_scorer.get_score([gold], [predicted], knowledge_source="finterms")["score"]
-        '''
+        f1 = f1_score(np.ones(common_length), pred_labels, average="weighted")
 
         return {
             "acc": accuracy,  # Higher is better
@@ -1341,6 +1316,7 @@ class XBRLExtraction(QA):
             "acc": np.mean,  # Use mean for accuracy across examples
             "f1_score": np.mean,  # Use mean for F1 score across examples
         }
+
 
 
 class FINTERM(LongFormFactuality):
