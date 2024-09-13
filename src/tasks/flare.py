@@ -1236,10 +1236,12 @@ class LongFormFactuality(Task):
         }
 
 
+import os
 import numpy as np
 from sklearn.metrics import f1_score
 import Levenshtein
 from factscore_package.factscorer import FactScorer
+
 
 class XBRLExtraction(QA):
     DATASET_PATH = "mirageco/test_dataset"
@@ -1301,34 +1303,45 @@ class XBRLExtraction(QA):
 
         # FactScore: Calculate using a fact scorer package
         fact_scorer = FactScorer("retrieval+ChatGPT", openai_key=os.environ["OPENAI_API_KEY"])
-        fact_scorer.register_knowledge_source(
-            "finterms", data_path="./src/factscore_package/.cache/finterms.jsonl", db_path="./src/factscore_package/.cache/fin_terms.db"
-        )
 
+        # Ensure paths for factscorer
+        db_dir = "./src/factscore_package/.cache"
+        db_path = os.path.join(db_dir, "fin_terms.db")
+        data_path = os.path.join(db_dir, "finterms.jsonl")
+
+        # Create the directory if it doesn't exist
+        os.makedirs(db_dir, exist_ok=True)
+
+        # If the database doesn't exist, skip registration
+        if os.path.exists(db_path):
+            fact_scorer.register_knowledge_source(
+                "finterms", data_path=data_path, db_path=db_path
+            )
+        else:
+            print("Skipping knowledge source registration as database does not exist.")
+
+        # Get FactScore
         fact_score = fact_scorer.get_score([gold], [predicted], knowledge_source="finterms")["score"]
 
         return {
-            "acc": accuracy,   # Higher is better
-            "f1_score": f1,    # Higher is better
+            "acc": accuracy,  # Higher is better
+            "f1_score": f1,  # Higher is better
             "fact_score": fact_score  # Higher is better
         }
 
     def higher_is_better(self):
         return {
-            "acc": True,       # Accuracy: higher is better
+            "acc": True,  # Accuracy: higher is better
             "f1_score": True,  # F1 Score: higher is better
-            "fact_score": True # FactScore: higher is better
+            "fact_score": True  # FactScore: higher is better
         }
 
     def aggregation(self):
         return {
-            "acc": np.mean,       # Use mean for accuracy across examples
+            "acc": np.mean,  # Use mean for accuracy across examples
             "f1_score": np.mean,  # Use mean for F1 score across examples
-            "fact_score": np.mean # Use mean for FactScore across examples
+            "fact_score": np.mean  # Use mean for FactScore across examples
         }
-
-
-
 
 
 class FINTERM(LongFormFactuality):
