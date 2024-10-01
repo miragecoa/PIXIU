@@ -1238,9 +1238,10 @@ class LongFormFactuality(Task):
 
 import numpy as np
 from sklearn.metrics import f1_score
+from FactScoreLite import FactScore, AtomicFactGenerator, FactScorer
 
 class XBRLExtraction(QA):
-    DATASET_PATH = "mirageco/test_dataset"
+    DATASET_PATH = "mirageco/XBRLBench"
 
     def has_training_docs(self):
         return True
@@ -1273,36 +1274,77 @@ class XBRLExtraction(QA):
         return cont_request
 
     def doc_to_text(self, doc):
-        return doc["query"]
+        return doc["text"] + "\n"+ doc["query"]
 
     def doc_to_target(self, doc):
         return doc["answer"]
-
+        '''
+            def process_results(self, doc, results):
+                predicted = results[0].strip()
+                gold = doc["answer"].strip()
+        
+                # Accuracy: Check if exact match between prediction and gold
+                accuracy = 1.0 if predicted == gold else 0.0
+        
+                # F1 Score: Simple token match between predicted and gold
+                pred_tokens = predicted.split()
+                gold_tokens = gold.split()
+        
+                # Compare tokens only up to the length of the shortest sequence
+                common_length = min(len(pred_tokens), len(gold_tokens))
+        
+                # Create binary labels for token match
+                pred_labels = np.zeros(common_length)
+                for i in range(common_length):
+                    if pred_tokens[i] == gold_tokens[i]:
+                        pred_labels[i] = 1
+        
+                f1 = f1_score(np.ones(common_length), pred_labels, average="weighted")
+        
+        
+                return {
+                    "acc": accuracy,  # Higher is better
+                    "f1_score": f1,  # Higher is better
+                }
+        '''
     def process_results(self, doc, results):
+        # Extract the predicted answer from the results
         predicted = results[0].strip()
-        gold = doc["answer"].strip()
+        gold = doc["answer"].strip()  # Gold standard answer (true answer)
+        context_xbrl = doc["text"]  # XBRL content (context provided to the model)
 
-        # Accuracy: Check if exact match between prediction and gold
+        # Step 1: Use FactScoreLite to extract facts from both predicted and gold responses
+        atomic_fact_generator = AtomicFactGenerator()
+        predicted_facts = atomic_fact_generator.run(predicted)
+        gold_facts = atomic_fact_generator.run(gold)
+
+        # Step 2: Score the extracted facts against the XBRL content (context)
+        fact_scorer = FactScorer()
+        knowledge_sources = [context_xbrl]  # Use XBRL content as the knowledge source
+
+        # Use FactScoreLite to calculate the FactScore for the predicted facts against the XBRL context
+        fact_score_obj = FactScore()
+        fact_scores, _ = fact_score_obj.get_factscore([predicted], [context_xbrl])
+
+        # Get the first FactScore value (assuming one prediction per document)
+        fact_score_value = fact_scores[0] if fact_scores else 0.0
+
+        # Step 3: Compute traditional accuracy
         accuracy = 1.0 if predicted == gold else 0.0
 
-        # F1 Score: Simple token match between predicted and gold
+        # Step 4: Compute F1 score for the tokens in the predicted and gold answers
         pred_tokens = predicted.split()
         gold_tokens = gold.split()
-
-        # Compare tokens only up to the length of the shortest sequence
         common_length = min(len(pred_tokens), len(gold_tokens))
+        pred_labels = [1 if pred_tokens[i] == gold_tokens[i] else 0 for i in range(common_length)]
 
-        # Create binary labels for token match
-        pred_labels = np.zeros(common_length)
-        for i in range(common_length):
-            if pred_tokens[i] == gold_tokens[i]:
-                pred_labels[i] = 1
+        f1 = f1_score([1] * common_length, pred_labels, average="weighted") if common_length > 0 else 0.0
 
-        f1 = f1_score(np.ones(common_length), pred_labels, average="weighted")
-
+        # Step 5: Return both the traditional metrics and the FactScore
         return {
             "acc": accuracy,  # Higher is better
             "f1_score": f1,  # Higher is better
+            "fact_score": fact_score_value  # Fact-based accuracy
         }
 
     def higher_is_better(self):

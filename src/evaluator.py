@@ -320,21 +320,21 @@ def evaluate(
 
             filtered_reqs = []
 
-            for req, (i, task_name, doc, doc_id, diag_id, turn) in zip(reqs, requests_origin[reqtype]
-):
+            for req, (i, task_name, doc, doc_id, diag_id, turn) in zip(reqs, requests_origin[reqtype]):
                 if turn != cur_turn:
                     continue
                 task_turns[task_name] = max(turn, task_turns.get(task_name, -1))
                 task = task_dict[task_name]
-                req = task.reformulate_turn_req(req, [(turn_requests.get((diag_id, t), None), t) for
-t in range(turn)], turn)
+                req = task.reformulate_turn_req(req, [(turn_requests.get((diag_id, t), None), t) for t in range(turn)], turn)
                 filtered_reqs.append([req, (i, task_name, doc, doc_id, diag_id, turn)])
 
             resps = getattr(lm, reqtype)([req.args for req in reqs])
             resps = [
-                x if req[0].index is None else x[req[0].index] for x, req in zip(resps, filtered_reqs
-)
+                x if req[0].index is None else x[req[0].index] for x, req in zip(resps, filtered_reqs)
             ]
+            print("####")
+            print(filtered_reqs[0])
+            print("####")
 
             for resp, req in zip(resps, filtered_reqs):
                 i, task_name, doc, doc_id, diag_id, turn = req[1]
@@ -363,8 +363,9 @@ t in range(turn)], turn)
 
         task = task_dict[task_name]
         doc = docs[(task_name, doc_id)]
-        print("doc: "+ str(doc))
+        print("doc: "+ str(doc['id']) + " Answer:" +str(doc['answer']))
         print("requests: "+ str(requests))
+        print()
 
 
         metrics = task.process_results(doc, requests)
